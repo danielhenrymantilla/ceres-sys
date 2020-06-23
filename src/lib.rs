@@ -130,7 +130,7 @@ impl CeresSolver {
     ) {
         let (mut data, resid_func) = unpack_closures(residual_function, x0.len());
         let mut x_ptr = x0.as_mut_ptr();
-        let mut len: i32 = x0.len().try_into()
+        let mut len: i32 = x0.len().try_into().expect("Length overflowed")
         unsafe {
             // Safety: ...
             ffi::ceres_problem_add_residual_block(
