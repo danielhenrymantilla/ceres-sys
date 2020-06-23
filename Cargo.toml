@@ -1,0 +1,13 @@
+[package]
+name = "ceres"
+version = "0.1.0"
+authors = ["Ethan Smith <ethan@ethanhs.me>"]
+edition = "2018"
+build = "build.rs"
+
+[dependencies]
+
+
+[build-dependencies]
+cmake = "0.1"
+bindgen = "0.53.1"
