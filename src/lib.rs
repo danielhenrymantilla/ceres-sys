@@ -7,7 +7,7 @@ mod ffi {
 }
 
 use ::std::{
-    core::convert::TryInto,
+    convert::TryInto,
     mem,
     ptr::{self, null_mut as NULL},
     slice,
