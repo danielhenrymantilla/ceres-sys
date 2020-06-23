@@ -61,7 +61,7 @@ where
                 ");
                 ::std::process::abort();
             }}
-            Guard
+            AbortOnDrop
         };          
         unsafe {
             let mut data: *mut ClosureData = data.cast();
