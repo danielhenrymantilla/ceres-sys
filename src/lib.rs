@@ -13,24 +13,25 @@ use ffi::{
     ceres_problem_add_residual_block, ceres_problem_t, ceres_solve,
 };
 
-struct ClosureData {
-    cost_fn: Box<dyn FnMut(&[f64], &mut [f64], Option<&mut [f64]>)>,
+#[repr(C)]
+struct ClosureData<'a> {
+    cost_fn: &'a mut dyn FnMut(&[f64], &mut [f64], Option<&mut [f64]>),
     nparams: usize,
 }
 
-unsafe fn unpack_closures<F>(closure: &mut F) -> (*mut c_void, ceres_cost_function_t)
+unsafe fn unpack_closures<F>(
+    mut closure: &mut F,
+    nparams: usize,
+) -> (*mut c_void, ceres_cost_function_t)
 where
     F: FnMut(&[f64], &mut [f64], Option<&mut [f64]>),
 {
-    extern "C" fn trampoline<F>(
+    extern "C" fn trampoline(
         data: *mut c_void,
         parameters: *mut *mut c_double,
         residuals: *mut c_double,
         jacobian: *mut *mut c_double,
-    ) -> c_int
-    where
-        F: FnMut(&[f64], &mut [f64], Option<&mut [f64]>),
-    {
+    ) -> c_int {
         unsafe {
             let closure_data: &mut ClosureData = &mut *(data as *mut ClosureData);
             let params = std::slice::from_raw_parts(parameters, 1);
@@ -55,7 +56,13 @@ where
         1
     }
 
-    (closure as *mut F as *mut c_void, Some(trampoline::<F>))
+    (
+        &mut ClosureData {
+            cost_fn: &mut closure,
+            nparams,
+        } as *mut ClosureData as *mut c_void,
+        Some(trampoline),
+    )
 }
 
 pub struct CeresSolver {
@@ -70,11 +77,11 @@ impl CeresSolver {
         }
     }
 
-    pub fn solve<R>(&self, mut residual_function: R, x0: &mut [f64])
+    pub fn solve<R>(&self, residual_function: &mut R, x0: &mut [f64])
     where
         R: FnMut(&[f64], &mut [f64], Option<&mut [f64]>),
     {
-        let (data, resid_func) = unsafe { unpack_closures(&mut residual_function) };
+        let (data, resid_func) = unsafe { unpack_closures(residual_function, x0.len()) };
         let mut x_ptr = x0.as_mut_ptr();
         unsafe {
             ceres_problem_add_residual_block(
