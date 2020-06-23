@@ -34,6 +34,9 @@ where
     ) -> c_int {
         unsafe {
             let closure_data: &mut ClosureData = &mut *(data as *mut ClosureData);
+            println!("{:p}", closure_data);
+            println!("{}", closure_data.nparams);
+            assert!(closure_data.nparams < 1e4 as usize);
             let params = std::slice::from_raw_parts(parameters, 1);
             let closure_params = std::slice::from_raw_parts(params[0], closure_data.nparams);
             let mut closure_residuals =
@@ -55,14 +58,13 @@ where
         }
         1
     }
-
-    (
-        &mut ClosureData {
-            cost_fn: &mut closure,
-            nparams,
-        } as *mut ClosureData as *mut c_void,
-        Some(trampoline),
-    )
+    let data = &mut ClosureData {
+        cost_fn: &mut closure,
+        nparams,
+    } as *mut ClosureData as *mut c_void;
+    println!("{:p}", data);
+    println!("{}", nparams);
+    (data, Some(trampoline))
 }
 
 pub struct CeresSolver {
